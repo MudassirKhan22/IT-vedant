@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: 🧾 Checkout Code
         uses: actions/checkout@v3
-
+                         
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -29,16 +29,24 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
 
       - name: 📦 Install Composer Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run:
+          cd app
+          composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: 🧹 Lint PHP Code
-        run: ./vendor/bin/phpcs --standard=PSR12 --ignore=vendor .
+        run:
+          cd app
+          ./vendor/bin/phpcs --standard=PSR12 --ignore=vendor .
 
       - name: 🧪 Run PHPUnit Tests
-        run: ./vendor/bin/phpunit
+        run:
+          cd app
+          ./vendor/bin/phpunit
 
       - name: 🔃 Run Yii2 Migrations
-        run: php yii migrate --interactive=0
+        run:
+          cd app
+          php yii migrate --interactive=0
 
       - name: 🔐 Set up SSH Agent
         uses: webfactory/ssh-agent@v0.7.0
