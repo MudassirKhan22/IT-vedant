@@ -32,17 +32,17 @@ jobs:
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: 🧹 Lint PHP Code
-        run:
+        run: |
           cd app
           ./vendor/bin/phpcs --standard=PSR12 --ignore=vendor .
 
       - name: 🧪 Run PHPUnit Tests
-        run:
+        run: |
           cd app
           ./vendor/bin/phpunit
 
       - name: 🔃 Run Yii2 Migrations
-        run:
+        run: |
           cd app
           php yii migrate --interactive=0
 
