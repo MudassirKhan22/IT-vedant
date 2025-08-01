@@ -1,0 +1,73 @@
+name: CI/CD for Yii2 App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      STAGING_HOST: ${{ secrets.STAGING_HOST }}
+      STAGING_USER: ${{ secrets.STAGING_USER }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: 🧾 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 🐘 Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          extensions: mbstring, pdo, pdo_mysql
+
+      - name: 📦 Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: 🧹 Lint PHP Code
+        run: ./vendor/bin/phpcs --standard=PSR12 --ignore=vendor .
+
+      - name: 🧪 Run PHPUnit Tests
+        run: ./vendor/bin/phpunit
+
+      - name: 🔃 Run Yii2 Migrations
+        run: php yii migrate --interactive=0
+
+      - name: 🔐 Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: 🚀 Deploy to Staging Server
+        run: |
+          rsync -azP --delete ./ ${{ env.STAGING_USER }}@${{ env.STAGING_HOST }}:/home/${{ env.STAGING_USER }}/yii2-docker-app
+          ssh ${{ env.STAGING_USER }}@${{ env.STAGING_HOST }} << 'EOF'
+            cd /home/${{ env.STAGING_USER }}/yii2-docker-app
+            docker-compose down
+            docker-compose up --build -d
+          EOF
+
+      - name: ✅ Notify Slack on Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_MESSAGE: "✅ Deployment to staging succeeded!"
+          SLACK_USERNAME: GitHub Actions
+
+      - name: ❌ Notify Slack on Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: '#FF0000'
+          SLACK_MESSAGE: "❌ Deployment failed. Check GitHub Actions log."
+          SLACK_USERNAME: GitHub Actions
+
