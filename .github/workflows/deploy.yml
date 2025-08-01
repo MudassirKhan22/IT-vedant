@@ -29,7 +29,9 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
 
       - name: 📦 Install Composer Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: |
+          cd app 
+          composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: 🧹 Lint PHP Code
         run: |
